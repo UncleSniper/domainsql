@@ -1,0 +1,12 @@
+utterance			::= definition*
+definition			::= enum_definition
+						| class_definition
+enum_definition		::= 'enum' NAME '(' ('int' | 'string') ')' '{' NAME % ',' '}'
+class_definition	::= 'class' NAME '=' NAME
+						('extends' NAME '(' key_mapping % ',' ')')?
+						'{' field_definition+ '}'
+key_mapping			::= NAME '->' NAME
+field_definition	::= ('key' | 'inverse')? field_type NAME '=' NAME
+field_type			::= primitive_type
+						| NAME '*'?
+primitive_type		::= 'int' | 'long' | 'double' | 'string'
