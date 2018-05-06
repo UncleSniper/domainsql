@@ -1,5 +1,7 @@
 package org.unclesniper.domsql.spec;
 
+import java.util.Map;
+import java.util.HashMap;
 import org.unclesniper.domsql.Location;
 
 public final class Token {
@@ -47,6 +49,25 @@ public final class Token {
 			return rendition;
 		}
 
+		public String formatExpectation() {
+			switch(this) {
+				case NAME:
+					return "identifier";
+				default:
+					return '\'' + rendition + '\'';
+			}
+		}
+
+	}
+
+	private static final Map<String, Type> KEYWORDS;
+
+	static {
+		KEYWORDS = new HashMap<String, Type>();
+		for(Type type : Type.values()) {
+			if(type.isKeyword())
+				KEYWORDS.put(type.getRendition(), type);
+		}
 	}
 
 	private final Location location;
@@ -71,6 +92,23 @@ public final class Token {
 
 	public String getText() {
 		return text;
+	}
+
+	public String format() {
+		switch(type) {
+			case NAME:
+				if(Lexer.isIdentifier(text))
+					return '\'' + text + '\'';
+				else
+					return '`' + text + '`';
+			default:
+				return '\'' + type.getRendition() + '\'';
+		}
+	}
+
+	public static Type typeByName(String text) {
+		Type type = Token.KEYWORDS.get(text);
+		return type == null ? Type.NAME : type;
 	}
 
 }

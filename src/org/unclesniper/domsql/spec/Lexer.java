@@ -1,6 +1,8 @@
 package org.unclesniper.domsql.spec;
 
+import java.io.Reader;
 import java.util.Deque;
+import java.io.IOException;
 import java.util.LinkedList;
 import org.unclesniper.domsql.Doom;
 import org.unclesniper.domsql.Location;
@@ -28,14 +30,27 @@ public class Lexer {
 
 	private StringBuilder buffer;
 
+	private Reader reader;
+
+	private char[] inputBuffer;
+
 	public Lexer(String file) {
-		this(file, 1, 1);
+		this(file, 1, 1, null);
 	}
 
 	public Lexer(String file, int line, int column) {
+		this(file, line, column, null);
+	}
+
+	public Lexer(String file, Reader reader) {
+		this(file, 1, 1, reader);
+	}
+
+	public Lexer(String file, int line, int column, Reader reader) {
 		this.file = file;
 		this.line = line;
 		this.column = column;
+		setReader(reader);
 	}
 
 	public String getFile() {
@@ -62,8 +77,25 @@ public class Lexer {
 		this.column = column;
 	}
 
+	public Reader getReader() {
+		return reader;
+	}
+
+	public void setReader(Reader reader) {
+		if(this.reader == reader)
+			return;
+		inputBuffer = null;
+		this.reader = reader;
+		if(reader != null)
+			inputBuffer = new char[128];
+	}
+
+	public Location getLocation() {
+		return new Location(file, line, column);
+	}
+
 	private void token(Token.Type type, String text) {
-		tokens.add(new Token(new Location(file, line, start), type, text));
+		tokens.addLast(new Token(new Location(file, line, start), type, text));
 	}
 
 	private void token(Token.Type type) {
@@ -77,11 +109,17 @@ public class Lexer {
 		token(type, text);
 	}
 
-	private void unexpected(char c) {
-		//TODO
+	private void nameToken() {
+		String text = buffer.toString();
+		buffer = null;
+		token(Token.typeByName(text), text);
 	}
 
-	public void pushSource(char[] chars, int offset, int count) {
+	private void unexpected(char c) throws UnexpectedCharacterException {
+		throw new UnexpectedCharacterException(new Location(file, line, column), c);
+	}
+
+	public void pushSource(char[] chars, int offset, int count) throws UnexpectedCharacterException {
 		int end = offset + count;
 		for(int i = offset; i < end; ++i) {
 			char c = chars[i];
@@ -114,8 +152,14 @@ public class Lexer {
 							token(Token.Type.EQUAL);
 							break;
 						case '-':
+							state = State.MINUS;
+							break;
 						case '*':
 							token(Token.Type.STAR);
+							break;
+						case '`':
+							buffer = new StringBuilder();
+							state = State.QUOTED_NAME;
 							break;
 						case '_':
 							buffer = new StringBuilder();
@@ -143,22 +187,109 @@ public class Lexer {
 					if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')
 						buffer.append(c);
 					else {
-						token(Token.Type.NAME);
+						nameToken();
 						state = State.NONE;
 						--i;
 						continue;
 					}
 					break;
 				case QUOTED_NAME:
-					//TODO
+					switch(c) {
+						case '\r':
+						case '\n':
+						case '\t':
+						case '\b':
+						case '\f':
+							unexpected(c);
+						case '`':
+							if(buffer.length() == 0)
+								unexpected(c);
+							token(Token.Type.NAME);
+							state = State.NONE;
+							break;
+						default:
+							buffer.append(c);
+							break;
+					}
+					break;
 				default:
 					throw new Doom("Unrecognized state: " + state.name());
 			}
+			if(c == '\n') {
+				++line;
+				column = 1;
+			}
+			else
+				++column;
 		}
 	}
 
-	public void endUnit() {
-		//TODO
+	public void endUnit() throws UnexpectedEndOfUnitException {
+		switch(state) {
+			case NONE:
+				break;
+			case NAME:
+				nameToken();
+				break;
+			case QUOTED_NAME:
+			case MINUS:
+				throw new UnexpectedEndOfUnitException(new Location(file, line, column));
+			default:
+				throw new Doom("Unrecognized state: " + state.name());
+		}
+		state = State.NONE;
+	}
+
+	public Token fetchToken() {
+		return tokens.isEmpty() ? null : tokens.removeFirst();
+	}
+
+	public Token nextToken() throws SpecLexicalException, IOException {
+		if(reader == null)
+			return fetchToken();
+		while(tokens.isEmpty()) {
+			int count = reader.read(inputBuffer);
+			if(count > 0)
+				pushSource(inputBuffer, 0, count);
+			else {
+				endUnit();
+				if(tokens.isEmpty())
+					return null;
+			}
+		}
+		return tokens.removeFirst();
+	}
+
+	public static String formatChar(char c) {
+		switch(c) {
+			case ' ':
+				return "<space>";
+			case '\t':
+				return "<tab>";
+			case '\r':
+				return "<carriage return>";
+			case '\n':
+				return "<linefeed>";
+			case '\f':
+				return "<formfeed>";
+			default:
+				return "'" + c + '\'';
+		}
+	}
+
+	public static boolean isIdentifier(String name) {
+		int length = name.length();
+		if(length == 0)
+			return false;
+		for(int i = 0; i < length; ++i) {
+			char c = name.charAt(i);
+			if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
+				continue;
+			if(i > 0 && c >= '0' && c <= '9')
+				continue;
+			return false;
+		}
+		return true;
 	}
 
 }
