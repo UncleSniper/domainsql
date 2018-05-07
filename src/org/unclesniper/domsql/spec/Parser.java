@@ -160,8 +160,33 @@ public class Parser {
 		consume(Token.Type.LEFT_CURLY);
 		for(;;) {
 			expect(Token.Type.NAME);
-			enumDef.addConstant(new EnumDefinition.Constant(token.getLocation(), token.getText()));
+			Location clocation = token.getLocation();
+			String cname = token.getText();
 			next();
+			expect(Token.Type.EQUAL, Token.Type.COMMA, Token.Type.RIGHT_CURLY);
+			String stringValue;
+			int intValue;
+			if(token.getType() == Token.Type.EQUAL) {
+				next();
+				expect(typeBase == EnumTypeBase.INT ? Token.Type.INT_LITERAL : Token.Type.STRING_LITERAL);
+				stringValue = token.getText();
+				if(typeBase == EnumTypeBase.INT) {
+					try {
+						intValue = Integer.parseInt(stringValue);
+					}
+					catch(NumberFormatException nfe) {
+						throw new IntLiteralExceedsBoundsException(token.getLocation(), stringValue);
+					}
+				}
+				else
+					intValue = 0;
+				next();
+			}
+			else {
+				stringValue = null;
+				intValue = 0;
+			}
+			enumDef.addConstant(new EnumDefinition.Constant(clocation, cname, stringValue, intValue));
 			switch(consumeT(Token.Type.COMMA, Token.Type.RIGHT_CURLY)) {
 				case COMMA:
 					if(token == null || token.getType() != Token.Type.RIGHT_CURLY)

@@ -13,7 +13,9 @@ public class Lexer {
 		NONE,
 		MINUS,
 		NAME,
-		QUOTED_NAME
+		QUOTED_NAME,
+		INT_LITERAL,
+		STRING_LITERAL
 	}
 
 	private String file;
@@ -166,11 +168,20 @@ public class Lexer {
 							buffer.append(c);
 							state = State.NAME;
 							break;
+						case '"':
+							buffer = new StringBuilder();
+							state = State.STRING_LITERAL;
+							break;
 						default:
 							if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
 								buffer = new StringBuilder();
 								buffer.append(c);
 								state = State.NAME;
+							}
+							else if(c >= '0' && c <= '9') {
+								buffer = new StringBuilder();
+								buffer.append(c);
+								state = State.INT_LITERAL;
 							}
 							else
 								unexpected(c);
@@ -205,6 +216,32 @@ public class Lexer {
 							if(buffer.length() == 0)
 								unexpected(c);
 							token(Token.Type.NAME);
+							state = State.NONE;
+							break;
+						default:
+							buffer.append(c);
+							break;
+					}
+					break;
+				case INT_LITERAL:
+					if(c >= '0' && c <= '9')
+						buffer.append(c);
+					else {
+						token(Token.Type.INT_LITERAL);
+						state = State.NONE;
+						--i;
+						continue;
+					}
+					break;
+				case STRING_LITERAL:
+					switch(c) {
+						case '\r':
+						case '\n':
+						case '\b':
+						case '\f':
+							unexpected(c);
+						case '"':
+							token(Token.Type.STRING_LITERAL);
 							state = State.NONE;
 							break;
 						default:

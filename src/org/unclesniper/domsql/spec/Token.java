@@ -9,6 +9,8 @@ public final class Token {
 	public enum Type {
 
 		NAME(null),
+		INT_LITERAL(null),
+		STRING_LITERAL(null),
 		ENUM,
 		LEFT_ROUND("("),
 		RIGHT_ROUND(")"),
@@ -53,6 +55,10 @@ public final class Token {
 			switch(this) {
 				case NAME:
 					return "identifier";
+				case INT_LITERAL:
+					return "integer literal";
+				case STRING_LITERAL:
+					return "string literal";
 				default:
 					return '\'' + rendition + '\'';
 			}
@@ -101,6 +107,10 @@ public final class Token {
 					return '\'' + text + '\'';
 				else
 					return '`' + text + '`';
+			case INT_LITERAL:
+				return '\'' + text + '\'';
+			case STRING_LITERAL:
+				return "'\"" + text + "\"'";
 			default:
 				return '\'' + type.getRendition() + '\'';
 		}

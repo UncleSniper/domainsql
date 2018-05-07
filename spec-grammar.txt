@@ -1,7 +1,8 @@
 utterance			::= definition*
 definition			::= enum_definition
 						| class_definition
-enum_definition		::= 'enum' NAME '(' ('int' | 'string') ')' '{' NAME % ',' '}'
+enum_definition		::= 'enum' NAME '(' ('int' | 'string') ')' '{' enum_constant % ',' '}'
+enum_constant		::= NAME '=' (INT | STRING)
 class_definition	::= 'class' NAME '=' NAME
 						('extends' NAME '(' key_mapping % ',' ')')?
 						'{' field_definition+ '}'

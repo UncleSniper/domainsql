@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-public class DBType {
+public class DBType implements SpecTypelike {
 
 	public static class Supertype {
 

@@ -3,6 +3,8 @@ package org.unclesniper.domsql.spec.syntax;
 import java.util.List;
 import java.util.LinkedList;
 import org.unclesniper.domsql.Location;
+import org.unclesniper.domsql.spec.CompilationContext;
+import org.unclesniper.domsql.spec.SpecSemanticsException;
 
 public class ClassDefinition extends Definition {
 
@@ -141,6 +143,10 @@ public class ClassDefinition extends Definition {
 	public void addField(FieldDefinition field) {
 		if(field != null)
 			fields.add(field);
+	}
+
+	public void createElements(CompilationContext cctx) throws SpecSemanticsException {
+		//TODO
 	}
 
 }
